@@ -142,12 +142,32 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
         
         // Log image path info
         _logDiagnostic('imagePath', recipe.imagePath ?? 'No image path');
+        _logDiagnostic('ingredientIds', recipe.ingredientIds.toString());
         
         // Step 2: Load ingredients
         _logDiagnostic('ingredientsLoad', 'Loading ingredients');
         try {
           final ingredients = await _hiveService.getIngredientsForRecipe(widget.recipeId);
           _logDiagnostic('ingredientsCount', '${ingredients.length} ingredients loaded');
+          _logDiagnostic('ingredients', ingredients.map((ing) => '$ing.name (${ing.id})').join(', '));
+
+          if (ingredients.isEmpty && recipe.ingredientIds.isNotEmpty) {
+            _logDiagnostic('ingredientsEmpty', 'No ingredients found for recipe');
+            
+            List<Ingredient> loadedIngredients = [];
+            for (String id in recipe.ingredientIds) {
+              final ingredient = await _hiveService.getIngredient(id);
+              if (ingredient != null) {
+                loadedIngredients.add(ingredient);
+                _logDiagnostic('ingredientLoadSuccess', 'Loaded ingredient: $ingredient.name');
+              }              
+            }
+
+            setState(() {
+              _ingredients = loadedIngredients;
+              _ingredientsLoaded = true;
+            });
+          }
           
           setState(() {
             _ingredients = ingredients;

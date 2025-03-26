@@ -241,8 +241,8 @@ class _NewRecipeFormState extends State<NewRecipeForm> {
             recipeId: recipeId,
           );
           
-          await _hiveService.addIngredient(updatedIngredient);
-          ingredientIds.add(updatedIngredient.id);
+          final ingredientID = await _hiveService.addIngredient(updatedIngredient);
+          ingredientIds.add(ingredientID);
         }
         
         // Create and save the recipe

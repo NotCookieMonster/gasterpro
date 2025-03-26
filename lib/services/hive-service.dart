@@ -78,7 +78,6 @@ class HiveService {
       name: ingredient.name,
       quantity: ingredient.quantity,
       unit: ingredient.unit,
-      price: ingredient.price,
       recipeId: ingredient.recipeId,
     );
     await box.put(id, newIngredient);
