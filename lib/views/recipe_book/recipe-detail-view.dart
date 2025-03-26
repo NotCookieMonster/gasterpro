@@ -18,7 +18,7 @@ class RecipeDetailView extends StatefulWidget {
 
   Settings? _currentSettings;
 
-  const RecipeDetailView({
+  RecipeDetailView({
     Key? key,
     required this.recipeId,
   }) : super(key: key);
@@ -34,7 +34,7 @@ class _RecipeDetailViewState extends State<RecipeDetailView> {
   bool _isLoading = true;
   Recipe? _recipe;
   List<Ingredient> _ingredients = [];
-
+  Settings? _currentSettings;
   // Add these helper methods to the _RecipeDetailViewState class
 
 bool _isConvertibleUnit(String unit) {
@@ -95,6 +95,7 @@ ConversionResult _convertToMetric(double quantity, String unit) {
       final ingredients = await _hiveService.getIngredientsForRecipe(widget.recipeId);
 
       final settings = await _hiveService.getSettings();
+      widget._currentSettings = settings;
       
       if (recipe != null) {
         setState(() {
@@ -102,6 +103,7 @@ ConversionResult _convertToMetric(double quantity, String unit) {
           _ingredients = ingredients;
           _originalPortions = recipe.portions;
           _currentPortions = recipe.portions;
+          _currentSettings = settings;
         });
       }
     } catch (e) {
@@ -329,50 +331,57 @@ ConversionResult _convertToMetric(double quantity, String unit) {
                                   _originalPortions,
                                   _currentPortions,
                                 );
-                                
-                                final displayQuantity = adjustedQuantity;
-                                String displayUnit = ingredient.unit;
-                                
-                                if (_currentSettings != null) {
-                                  // Check if unit needs conversion
-                                  if (_isConvertibleUnit(ingredient.unit)) {
-                                    // Convert to target system
-                                    if (_currentSettings!.measurementSystem == 'imperial' && _isMetricUnit(ingredient.unit)) {
-                                      // Convert from metric to imperial
-                                      final convertedResult = _convertToImperial(adjustedQuantity, ingredient.unit);
-                                      displayUnit = convertedResult.unit;
-                                      displayQuantity = convertedResult.quantity;
-                                    } else if (_currentSettings!.measurementSystem == 'metric' && _isImperialUnit(ingredient.unit)) {
-                                      // Convert from imperial to metric
-                                      final convertedResult = _convertToMetric(adjustedQuantity, ingredient.unit);
-                                      displayUnit = convertedResult.unit;
-                                      displayQuantity = convertedResult.quantity;
-                                    }
-                                  }
-                                }
-
+                            
                                return Padding(
-                                  padding: const EdgeInsets.only(bottom: 8.0),
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        '•',
-                                        style: TextStyle(
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.bold,
-                                        ),
+                                padding: const EdgeInsets.only(bottom: 8.0),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      '•',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
                                       ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Text(
-                                          '${adjustedQuantity.toStringAsFixed(1)} ${ingredient.unit} de ${ingredient.name}',
-                                          style: const TextStyle(fontSize: 16),
-                                        ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Text(
+                                        () {
+                                          // Calculate adjusted quantity
+                                          double quantity = ingredient.calculateAdjustedQuantity(
+                                            _originalPortions,
+                                            _currentPortions,
+                                          );
+                                          
+                                          String unit = ingredient.unit;
+                                          
+                                          // Perform unit conversion if needed
+                                          if (_currentSettings != null) {
+                                            if (_isConvertibleUnit(ingredient.unit)) {
+                                              if (_currentSettings!.measurementSystem == 'imperial' && _isMetricUnit(ingredient.unit)) {
+                                                // Convert from metric to imperial
+                                                final convertedResult = _convertToImperial(quantity, ingredient.unit);
+                                                unit = convertedResult.unit;
+                                                quantity = convertedResult.quantity;
+                                              } else if (_currentSettings!.measurementSystem == 'metric' && _isImperialUnit(ingredient.unit)) {
+                                                // Convert from imperial to metric
+                                                final convertedResult = _convertToMetric(quantity, ingredient.unit);
+                                                unit = convertedResult.unit;
+                                                quantity = convertedResult.quantity;
+                                              }
+                                            }
+                                          }
+                                          
+                                          // Return formatted string
+                                          return '${quantity.toStringAsFixed(1)} $unit de ${ingredient.name}';
+                                        }(),
+                                        style: const TextStyle(fontSize: 16),
                                       ),
-                                    ],
-                                  ),
-                                );
+                                    ),
+                                  ],
+                                ),
+                              );
                               },
                             ),
                         ],
