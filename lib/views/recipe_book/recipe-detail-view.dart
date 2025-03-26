@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import '../../models/recipe.dart';
 import '../../models/ingredient.dart';
@@ -145,12 +146,24 @@ ConversionResult _convertToMetric(double quantity, String unit) {
         appBar: AppBar(
           title: const Text('Error'),
         ),
-        body: const Center(
-          child: Text('No se pudo cargar la receta'),
+        body: Center(
+          child: Column(
+            children: [
+              const Text('No se pudo cargar la receta'),
+              if (kIsWeb) const SizedBox(height: 20),
+              if (kIsWeb)
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Volver'),
+                ),
+            ],
+          ),
         ),
       );
     }
-
+    try {
     return Scaffold(
       appBar: AppBar(
         title: Text(_recipe!.name),
@@ -436,5 +449,28 @@ ConversionResult _convertToMetric(double quantity, String unit) {
         ),
       ),
     );
+    } catch (e) {
+      print('Error: $e');
+      return Scaffold(
+        appBar: AppBar(
+          title: const Text('Error'),
+        ),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Text('Error al cargar la receta'),
+              SizedBox(height: 20),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Volver'),
+                ),
+            ],
+          ),
+        ),
+      );
+    }	
   }
 }
