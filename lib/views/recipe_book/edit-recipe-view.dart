@@ -1,4 +1,6 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../models/recipe.dart';
 import '../../models/ingredient.dart';
 import '../../services/hive-service.dart';
@@ -28,6 +30,7 @@ class _EditRecipeViewState extends State<EditRecipeView> {
   List<Ingredient> _ingredients = [];
   String? _imagePath;
   bool _isLoading = true;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -51,10 +54,12 @@ class _EditRecipeViewState extends State<EditRecipeView> {
         _imagePath = recipe.imagePath;
 
         // Cargar ingredientes
-        _ingredients = await _hiveService.getIngredientsForRecipe(recipe.id);
+        final ingredients = await _hiveService.getIngredientsForRecipe(recipe.id);
+        setState(() {
+          _ingredients = ingredients;
+        });
       }
     } catch (e) {
-      // Manejar error
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Error al cargar la receta: $e')),
       );
@@ -74,8 +79,41 @@ class _EditRecipeViewState extends State<EditRecipeView> {
     super.dispose();
   }
 
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final pickedFile = await picker.pickImage(
+        source: source,
+        maxWidth: 800,
+        maxHeight: 800,
+        imageQuality: 85,
+      );
+      
+      if (pickedFile != null) {
+        setState(() {
+          _imagePath = pickedFile.path;
+        });
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error al seleccionar imagen: $e')),
+      );
+    }
+  }
+
   Future<void> _saveRecipe() async {
     if (_formKey.currentState!.validate() && _recipe != null) {
+      if (_ingredients.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Debe haber al menos un ingrediente')),
+        );
+        return;
+      }
+      
+      setState(() {
+        _isSaving = true;
+      });
+      
       try {
         // Actualizar receta
         final updatedRecipe = Recipe(
@@ -91,14 +129,22 @@ class _EditRecipeViewState extends State<EditRecipeView> {
         await _hiveService.updateRecipe(updatedRecipe);
         
         if (!mounted) return;
-        Navigator.pop(context);
+        
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Receta actualizada con éxito')),
         );
+        
+        Navigator.pop(context);
       } catch (e) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(content: Text('Error al guardar: $e')),
         );
+      } finally {
+        if (mounted) {
+          setState(() {
+            _isSaving = false;
+          });
+        }
       }
     }
   }
@@ -107,8 +153,9 @@ class _EditRecipeViewState extends State<EditRecipeView> {
     final _ingredientNameController = TextEditingController(text: ingredient?.name ?? '');
     final _quantityController = TextEditingController(
         text: ingredient?.quantity.toString() ?? '');
-    String _selectedUnit = ingredient?.unit ?? 'g';
+    
     final settings = await _hiveService.getSettings();
+    String _selectedUnit = ingredient?.unit ?? (settings.measurementSystem == 'metric' ? 'g' : 'oz');
     final List<String> _units = settings.getCurrentUnits();
 
     final result = await showDialog<Map<String, dynamic>>(
@@ -118,55 +165,57 @@ class _EditRecipeViewState extends State<EditRecipeView> {
           builder: (context, setState) {
             return AlertDialog(
               title: Text(ingredient == null ? 'Nuevo Ingrediente' : 'Editar Ingrediente'),
-              content: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  TextFormField(
-                    controller: _ingredientNameController,
-                    decoration: const InputDecoration(
-                      labelText: 'Nombre del ingrediente',
-                      border: OutlineInputBorder(),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    TextFormField(
+                      controller: _ingredientNameController,
+                      decoration: const InputDecoration(
+                        labelText: 'Nombre del ingrediente',
+                        border: OutlineInputBorder(),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 16.0),
-                  Row(
-                    children: [
-                      Expanded(
-                        flex: 2,
-                        child: TextFormField(
-                          controller: _quantityController,
-                          keyboardType: TextInputType.number,
-                          decoration: const InputDecoration(
-                            labelText: 'Cantidad',
-                            border: OutlineInputBorder(),
+                    const SizedBox(height: 16.0),
+                    Row(
+                      children: [
+                        Expanded(
+                          flex: 2,
+                          child: TextFormField(
+                            controller: _quantityController,
+                            keyboardType: TextInputType.number,
+                            decoration: const InputDecoration(
+                              labelText: 'Cantidad',
+                              border: OutlineInputBorder(),
+                            ),
                           ),
                         ),
-                      ),
-                      const SizedBox(width: 8.0),
-                      Expanded(
-                        flex: 1,
-                        child: DropdownButtonFormField<String>(
-                          value: _selectedUnit,
-                          decoration: const InputDecoration(
-                            labelText: 'Unidad',
-                            border: OutlineInputBorder(),
+                        const SizedBox(width: 8.0),
+                        Expanded(
+                          flex: 1,
+                          child: DropdownButtonFormField<String>(
+                            value: _selectedUnit,
+                            decoration: const InputDecoration(
+                              labelText: 'Unidad',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: _units.map((unit) {
+                              return DropdownMenuItem<String>(
+                                value: unit,
+                                child: Text(unit),
+                              );
+                            }).toList(),
+                            onChanged: (value) {
+                              setState(() {
+                                _selectedUnit = value!;
+                              });
+                            },
                           ),
-                          items: _units.map((unit) {
-                            return DropdownMenuItem<String>(
-                              value: unit,
-                              child: Text(unit),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              _selectedUnit = value!;
-                            });
-                          },
                         ),
-                      ),
-                    ],
-                  ),
-                ],
+                      ],
+                    ),
+                  ],
+                ),
               ),
               actions: [
                 TextButton(
@@ -184,6 +233,12 @@ class _EditRecipeViewState extends State<EditRecipeView> {
                         'quantity': double.tryParse(_quantityController.text) ?? 0,
                         'unit': _selectedUnit,
                       });
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Por favor complete todos los campos'),
+                        ),
+                      );
                     }
                   },
                   child: const Text('Aceptar'),
@@ -313,11 +368,17 @@ class _EditRecipeViewState extends State<EditRecipeView> {
         title: const Text('Editar Receta'),
         actions: [
           TextButton(
-            onPressed: _saveRecipe,
-            child: const Text(
-              'Aceptar',
-              style: TextStyle(color: Colors.white),
-            ),
+            onPressed: _isSaving ? null : _saveRecipe,
+            child: _isSaving
+                ? const SizedBox(
+                    width: 20, 
+                    height: 20, 
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2,)
+                  )
+                : const Text(
+                    'Aceptar',
+                    style: TextStyle(color: Colors.white),
+                  ),
           ),
         ],
       ),
@@ -332,6 +393,7 @@ class _EditRecipeViewState extends State<EditRecipeView> {
               decoration: const InputDecoration(
                 labelText: 'Nombre de la receta',
                 border: OutlineInputBorder(),
+                errorStyle: TextStyle(color: Colors.red),
               ),
               validator: (value) {
                 if (value == null || value.isEmpty) {
@@ -364,6 +426,7 @@ class _EditRecipeViewState extends State<EditRecipeView> {
                     keyboardType: TextInputType.number,
                     decoration: const InputDecoration(
                       border: OutlineInputBorder(),
+                      errorStyle: TextStyle(color: Colors.red),
                     ),
                     validator: (value) {
                       if (value == null || value.isEmpty) {
@@ -402,6 +465,9 @@ class _EditRecipeViewState extends State<EditRecipeView> {
 
             // Imagen de receta
             Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -414,16 +480,22 @@ class _EditRecipeViewState extends State<EditRecipeView> {
                     const SizedBox(height: 8.0),
                     Center(
                       child: _imagePath != null
-                          ? Image.network(
-                              _imagePath!,
-                              height: 150,
-                              width: 150,
-                              fit: BoxFit.cover,
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.file(
+                                File(_imagePath!),
+                                height: 200,
+                                width: 200,
+                                fit: BoxFit.cover,
+                              ),
                             )
                           : Container(
-                              height: 150,
-                              width: 150,
-                              color: Colors.grey[300],
+                              height: 200,
+                              width: 200,
+                              decoration: BoxDecoration(
+                                color: Colors.grey[300],
+                                borderRadius: BorderRadius.circular(8),
+                              ),
                               child: const Icon(
                                 Icons.add_photo_alternate,
                                 size: 50,
@@ -436,17 +508,13 @@ class _EditRecipeViewState extends State<EditRecipeView> {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         ElevatedButton.icon(
-                          onPressed: () {
-                            // Implementar tomar foto
-                          },
+                          onPressed: () => _pickImage(ImageSource.camera),
                           icon: const Icon(Icons.camera_alt),
                           label: const Text('Tomar foto'),
                         ),
                         const SizedBox(width: 8.0),
                         ElevatedButton.icon(
-                          onPressed: () {
-                            // Implementar seleccionar de galería
-                          },
+                          onPressed: () => _pickImage(ImageSource.gallery),
                           icon: const Icon(Icons.photo_library),
                           label: const Text('Desde Galería'),
                         ),
@@ -460,6 +528,9 @@ class _EditRecipeViewState extends State<EditRecipeView> {
 
             // Ingredientes
             Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -479,31 +550,34 @@ class _EditRecipeViewState extends State<EditRecipeView> {
                       ],
                     ),
                     const SizedBox(height: 8.0),
-                    // Lista de ingredientes
-                    ListView.builder(
-                      shrinkWrap: true,
-                      physics: const NeverScrollableScrollPhysics(),
-                      itemCount: _ingredients.length,
-                      itemBuilder: (context, index) {
-                        final ingredient = _ingredients[index];
-                        return ListTile(
-                          title: Text('${ingredient.quantity} ${ingredient.unit} de ${ingredient.name}'),
-                          trailing: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit),
-                                onPressed: () => _showIngredientForm(context, ingredient),
-                              ),
-                              IconButton(
-                                icon: const Icon(Icons.delete),
-                                onPressed: () => _deleteIngredient(ingredient),
-                              ),
-                            ],
+                    
+                    if (_ingredients.isEmpty)
+                      if (_ingredients.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            'No hay ingredientes agregados',
+                            style: TextStyle(fontStyle: FontStyle.italic),
                           ),
-                        );
-                      },
-                    ),
+                        )
+                      else
+                      ListView.builder(
+                        shrinkWrap: true,
+                        physics: const NeverScrollableScrollPhysics(),
+                        itemCount: _ingredients.length,
+                        itemBuilder: (context, index) {
+                          final ingredient = _ingredients[index];
+                          return ListTile(
+                            contentPadding: EdgeInsets.zero,
+                            leading: const Text('•'),
+                            title: Text('${ingredient.quantity} ${ingredient.unit} de ${ingredient.name}'),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () => _deleteIngredient(ingredient),
+                            ),
+                          );
+                        },
+                      ),
                   ],
                 ),
               ),
@@ -512,6 +586,9 @@ class _EditRecipeViewState extends State<EditRecipeView> {
 
             // Procedimiento
             Card(
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12.0),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(16.0),
                 child: Column(
@@ -527,6 +604,7 @@ class _EditRecipeViewState extends State<EditRecipeView> {
                       decoration: const InputDecoration(
                         hintText: 'Escriba el procedimiento paso a paso...',
                         border: OutlineInputBorder(),
+                        errorStyle: TextStyle(color: Colors.red),
                       ),
                       maxLines: 10,
                       validator: (value) {
@@ -552,12 +630,24 @@ class _EditRecipeViewState extends State<EditRecipeView> {
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.grey,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32, 
+                      vertical: 12,
+                    ),
                   ),
                   child: const Text('Cancelar'),
                 ),
                 ElevatedButton(
-                  onPressed: _saveRecipe,
-                  child: const Text('Confirmar'),
+                  onPressed: _isSaving ? null : _saveRecipe,
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32, 
+                      vertical: 12,
+                    ),
+                  ),
+                  child: _isSaving 
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : const Text('Confirmar'),
                 ),
               ],
             ),

@@ -4,6 +4,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/calculator_ingredient.dart';
 import '../../services/hive-service.dart';
 import 'package:uuid/uuid.dart';
+import '../../models/settings.dart';
 
 class CalculatorView extends StatefulWidget {
   const CalculatorView({Key? key}) : super(key: key);
@@ -39,7 +40,7 @@ class _CalculatorViewState extends State<CalculatorView> {
       _totalCost = ingredients.fold(0, (sum, item) => sum + item.price);
     } catch (e) {
       // Manejar error
-      print('Error al cargar datos: $e');
+      debugPrint('Error al cargar datos: $e');
     } finally {
       setState(() {
         _isLoading = false;
@@ -64,205 +65,297 @@ class _CalculatorViewState extends State<CalculatorView> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return Scaffold(
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Información de costos totales
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: Column(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        // Tarjeta de resumen de costos
+        Card(
+          margin: const EdgeInsets.all(16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          elevation: 4,
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'TOTAL:',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                        Text(
-                          '\$${_totalCost.toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontWeight: FontWeight.bold,
-                            fontSize: 18,
-                          ),
-                        ),
-                      ],
+                    const Text(
+                      'TOTAL:',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 20,
+                      ),
                     ),
-                    const SizedBox(height: 8),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        const Text(
-                          'Per capita:',
-                          style: TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-                        Text(
-                          '\$${(_teamMembers > 0 ? _totalCost / _teamMembers : 0).toStringAsFixed(2)}',
-                          style: const TextStyle(
-                            fontSize: 16,
-                          ),
-                        ),
-                      ],
+                    Text(
+                      '\$${_totalCost.toStringAsFixed(2)}',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 24,
+                        color: Theme.of(context).primaryColor,
+                      ),
                     ),
-                    const SizedBox(height: 16),
+                  ],
+                ),
+                const Divider(height: 24),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'Per capita:',
+                      style: TextStyle(
+                        fontSize: 16,
+                      ),
+                    ),
+                    Text(
+                      '\$${(_teamMembers > 0 ? _totalCost / _teamMembers : 0).toStringAsFixed(2)}',
+                      style: const TextStyle(
+                        fontSize: 18,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    const Text(
+                      'MIEMBROS DEL EQUIPO',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
                     Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        const Text(
-                          'MIEMBROS DEL EQUIPO',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
+                        Material(
+                          color: Theme.of(context).primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: _teamMembers > 1
+                                ? () => _updateTeamMembers(_teamMembers - 1)
+                                : null,
+                            child: const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Icon(Icons.remove),
+                            ),
                           ),
                         ),
-                        Row(
-                          children: [
-                            IconButton(
-                              icon: const Icon(Icons.remove),
-                              onPressed: _teamMembers > 1
-                                  ? () => _updateTeamMembers(_teamMembers - 1)
-                                  : null,
+                        Container(
+                          margin: const EdgeInsets.symmetric(horizontal: 16),
+                          child: Text(
+                            '$_teamMembers',
+                            style: const TextStyle(
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
                             ),
-                            Text(
-                              '$_teamMembers',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
+                          ),
+                        ),
+                        Material(
+                          color: Theme.of(context).primaryColor.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          child: InkWell(
+                            borderRadius: BorderRadius.circular(8),
+                            onTap: () => _updateTeamMembers(_teamMembers + 1),
+                            child: const Padding(
+                              padding: EdgeInsets.all(8.0),
+                              child: Icon(Icons.add),
                             ),
-                            IconButton(
-                              icon: const Icon(Icons.add),
-                              onPressed: () => _updateTeamMembers(_teamMembers + 1),
-                            ),
-                          ],
+                          ),
                         ),
                       ],
                     ),
                   ],
                 ),
-              ),
+              ],
             ),
-            
-            const SizedBox(height: 16),
-            
-            // Lista de ingredientes
-            Expanded(
-              child: ValueListenableBuilder<Box<CalculatorIngredient>>(
-                valueListenable: Hive.box<CalculatorIngredient>('calculator_ingredients').listenable(),
-                builder: (context, box, _) {
-                  final ingredients = box.values.toList();
-                  
-                  if (ingredients.isEmpty) {
-                    return Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(
-                            Icons.shopping_cart,
-                            size: 64,
-                            color: Colors.grey,
-                          ),
-                          const SizedBox(height: 16),
-                          const Text(
-                            'No hay ingredientes agregados',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.grey,
-                            ),
-                          ),
-                          const SizedBox(height: 24),
-                          ElevatedButton.icon(
-                            onPressed: () {
-                              _showIngredientForm(context);
-                            },
-                            icon: const Icon(Icons.add),
-                            label: const Text('Agregar ingrediente'),
-                          ),
-                        ],
+          ),
+        ),
+        
+        // Título de la lista
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Lista de ingredientes',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              TextButton.icon(
+                icon: const Icon(Icons.delete_sweep),
+                label: const Text('Limpiar'),
+                onPressed: () {
+                  _showClearConfirmation(context);
+                },
+              ),
+            ],
+          ),
+        ),
+        
+        // Lista de ingredientes
+        Expanded(
+          child: ValueListenableBuilder<Box<CalculatorIngredient>>(
+            valueListenable: Hive.box<CalculatorIngredient>('calculator_ingredients').listenable(),
+            builder: (context, box, _) {
+              final ingredients = box.values.toList();
+              
+              if (ingredients.isEmpty) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.shopping_cart,
+                        size: 64,
+                        color: Colors.grey,
                       ),
-                    );
-                  }
-                  
-                  return ListView.builder(
-                    itemCount: ingredients.length,
-                    itemBuilder: (context, index) {
-                      final ingredient = ingredients[index];
-                      return Dismissible(
-                        key: Key(ingredient.id),
-                        background: Container(
-                          color: Colors.red,
-                          alignment: Alignment.centerRight,
-                          padding: const EdgeInsets.only(right: 20),
-                          child: const Icon(
-                            Icons.delete,
-                            color: Colors.white,
-                          ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'No hay ingredientes agregados',
+                        style: TextStyle(
+                          fontSize: 18,
+                          color: Colors.grey,
                         ),
-                        direction: DismissDirection.endToStart,
-                        onDismissed: (direction) async {
-                          await _hiveService.deleteCalculatorIngredient(ingredient.id);
-                          
-                          // Actualizar el costo total
-                          setState(() {
-                            _totalCost -= ingredient.price;
-                          });
-                          
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('${ingredient.name} eliminado'),
-                              action: SnackBarAction(
-                                label: 'Deshacer',
-                                onPressed: () async {
-                                  // Volver a agregar el ingrediente
-                                  await _hiveService.addCalculatorIngredient(ingredient);
-                                  
-                                  // Actualizar el costo total
-                                  setState(() {
-                                    _totalCost += ingredient.price;
-                                  });
-                                },
-                              ),
-                            ),
-                          );
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: () {
+                          _showIngredientForm(context);
                         },
-                        child: Card(
-                          child: ListTile(
-                            title: Text(ingredient.name),
-                            subtitle: Text(
-                                '${ingredient.quantity} ${ingredient.unit}'),
-                            trailing: Text(
-                              '\$${ingredient.price.toStringAsFixed(2)}',
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                            onTap: () {
-                              _showIngredientForm(context, ingredient);
+                        icon: const Icon(Icons.add),
+                        label: const Text('Agregar ingrediente'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+              
+              // Actualizar el costo total cada vez que cambia la lista
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                final newTotal = ingredients.fold(0.0, (sum, item) => sum + item.price);
+                if (newTotal != _totalCost) {
+                  setState(() {
+                    _totalCost = newTotal;
+                  });
+                }
+              });
+              
+              return ListView.builder(
+                padding: const EdgeInsets.all(8),
+                itemCount: ingredients.length,
+                itemBuilder: (context, index) {
+                  final ingredient = ingredients[index];
+                  return Dismissible(
+                    key: Key(ingredient.id),
+                    background: Container(
+                      color: Colors.red,
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      child: const Icon(
+                        Icons.delete,
+                        color: Colors.white,
+                      ),
+                    ),
+                    direction: DismissDirection.endToStart,
+                    onDismissed: (direction) async {
+                      await _hiveService.deleteCalculatorIngredient(ingredient.id);
+                      
+                      // Actualizar el costo total
+                      setState(() {
+                        _totalCost -= ingredient.price;
+                      });
+                      
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('${ingredient.name} eliminado'),
+                          action: SnackBarAction(
+                            label: 'Deshacer',
+                            onPressed: () async {
+                              // Volver a agregar el ingrediente
+                              await _hiveService.addCalculatorIngredient(ingredient);
+                              
+                              // Actualizar el costo total
+                              setState(() {
+                                _totalCost += ingredient.price;
+                              });
                             },
                           ),
                         ),
                       );
                     },
+                    confirmDismiss: (direction) async {
+                      return await showDialog<bool>(
+                        context: context,
+                        builder: (BuildContext context) {
+                          return AlertDialog(
+                            title: const Text('Confirmar'),
+                            content: Text('¿Eliminar "${ingredient.name}" de la lista?'),
+                            actions: [
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(false),
+                                child: const Text('Cancelar'),
+                              ),
+                              TextButton(
+                                onPressed: () => Navigator.of(context).pop(true),
+                                child: const Text('Eliminar'),
+                              ),
+                            ],
+                          );
+                        },
+                      ) ?? false;
+                    },
+                    child: Card(
+                      margin: const EdgeInsets.symmetric(vertical: 4, horizontal: 8),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: ListTile(
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        leading: CircleAvatar(
+                          backgroundColor: Theme.of(context).primaryColor.withOpacity(0.2),
+                          child: Icon(
+                            Icons.restaurant,
+                            color: Theme.of(context).primaryColor,
+                          ),
+                        ),
+                        title: Text(
+                          ingredient.name,
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${ingredient.quantity} ${ingredient.unit}',
+                        ),
+                        trailing: Text(
+                          '\$${ingredient.price.toStringAsFixed(2)}',
+                          style: const TextStyle(
+                            fontWeight: FontWeight.bold,
+                            fontSize: 16,
+                          ),
+                        ),
+                        onTap: () {
+                          _showIngredientForm(context, ingredient);
+                        },
+                      ),
+                    ),
                   );
                 },
-              ),
-            ),
-          ],
+              );
+            },
+          ),
         ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _showIngredientForm(context);
-        },
-        child: const Icon(Icons.add),
-      ),
+      ],
+      
+      // Floating action button for adding ingredients
+      
     );
   }
 
@@ -277,10 +370,10 @@ class _CalculatorViewState extends State<CalculatorView> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
-        return FutureBuilder<List<String>>(
-          future: _hiveService.getSettings().then((settings) => settings.getCurrentUnits()),
+        return FutureBuilder<Settings>(
+          future: _hiveService.getSettings(),
           builder: (context, snapshot) {
-            final units = snapshot.data ?? ['g', 'kg', 'ml', 'l', 'cdta', 'cda', 'taza', 'pizca', 'unidad'];
+            final units = snapshot.data?.getCurrentUnits() ?? ['g', 'kg', 'ml', 'l', 'cdta', 'cda', 'taza', 'pizca', 'unidad'];
 
             return StatefulBuilder(
               builder: (context, setState) {
@@ -407,6 +500,13 @@ class _CalculatorViewState extends State<CalculatorView> {
                           }
                           
                           Navigator.of(context).pop();
+                        } else {
+                          // Mostrar mensaje de error
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Por favor complete todos los campos'),
+                            ),
+                          );
                         }
                       },
                       child: const Text('Aceptar'),
@@ -416,6 +516,39 @@ class _CalculatorViewState extends State<CalculatorView> {
               },
             );
           },
+        );
+      },
+    );
+  }
+  
+  void _showClearConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Limpiar lista'),
+          content: const Text('¿Estás seguro de que deseas eliminar todos los ingredientes de la calculadora?'),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+              child: const Text('Cancelar'),
+            ),
+            TextButton(
+              onPressed: () async {
+                await _hiveService.clearAllCalculatorIngredients();
+                setState(() {
+                  _totalCost = 0;
+                });
+                Navigator.of(context).pop();
+              },
+              child: const Text('Limpiar'),
+              style: TextButton.styleFrom(
+                foregroundColor: Colors.red,
+              ),
+            ),
+          ],
         );
       },
     );
