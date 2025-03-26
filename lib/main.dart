@@ -26,18 +26,7 @@ void main() async {
     // Note: You should also initialize Firebase for web here
     // If you want to add Firebase Storage for more robust image handling
     // This would require adding firebase packages to your pubspec.yaml
-    /*
-    await Firebase.initializeApp(
-      options: FirebaseOptions(
-        apiKey: "YOUR_API_KEY",
-        authDomain: "gasterpro.firebaseapp.com",
-        projectId: "gasterpro",
-        storageBucket: "gasterpro.appspot.com",
-        messagingSenderId: "YOUR_SENDER_ID",
-        appId: "YOUR_APP_ID"
-      ),
-    );
-    */
+
     
   } else {
     // Inicialización para móviles/desktop
@@ -52,11 +41,17 @@ void main() async {
   Hive.registerAdapter(CalculatorIngredientAdapter());
   
   // Abrir cajas (boxes)
-  await Hive.openBox<Recipe>('recipes');
-  await Hive.openBox<Ingredient>('ingredients');
-  await Hive.openBox<Settings>('settings');
-  await Hive.openBox<CalculatorIngredient>('calculator_ingredients');
-  await Hive.openBox<int>('calculator_settings');
+  try{
+    await Hive.openBox<Recipe>('recipes');
+    await Hive.openBox<Ingredient>('ingredients');
+    await Hive.openBox<Settings>('settings');
+    await Hive.openBox<CalculatorIngredient>('calculator_ingredients');
+    await Hive.openBox<int>('calculator_settings');
+
+    print('Succesfully opened all Hive Boxes');
+  } catch (e) {
+    print('Error opening Hive boxes: $e');
+  }
   
   // Verificar si las configuraciones existen, si no, crear una por defecto
   final settingsBox = Hive.box<Settings>('settings');

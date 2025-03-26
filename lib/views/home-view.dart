@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'recipe_book/recipe-list-view.dart';
 import 'calculator/calculator-view.dart';
 import 'settings/settings-view.dart';
+import '../services/web-storage-service.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({Key? key}) : super(key: key);
@@ -23,6 +24,17 @@ class _HomeViewState extends State<HomeView> {
     'Calculadora',
     'Configuración',
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _checkWebStorage();
+  }
+
+  Future<void> _checkWebStorage() async {
+    final webStorage = WebStorageService();
+    await webStorage.ensureWebStorageWorks();
+  }
 
   @override
   Widget build(BuildContext context) {
