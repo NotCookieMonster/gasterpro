@@ -119,7 +119,7 @@ class _SettingsViewState extends State<SettingsView> {
                       ListTile(
                         title: const Text('Desarrollado por'),
                         trailing: Text(
-                          'NotCookieMonster',
+                          '@notmnstr',
                           style: TextStyle(
                             color: Theme.of(context).primaryColor,
                           ),

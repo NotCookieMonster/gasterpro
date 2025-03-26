@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:gasterpro3/services/image-service.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../models/recipe.dart';
 import '../../models/ingredient.dart';
@@ -52,9 +53,11 @@ class _EditRecipeViewState extends State<EditRecipeView> {
         _portionsController.text = recipe.portions.toString();
         _procedureController.text = recipe.procedure;
         _imagePath = recipe.imagePath;
+        
 
         // Cargar ingredientes
         final ingredients = await _hiveService.getIngredientsForRecipe(recipe.id);
+        
         setState(() {
           _ingredients = ingredients;
         });
@@ -90,8 +93,11 @@ class _EditRecipeViewState extends State<EditRecipeView> {
       );
       
       if (pickedFile != null) {
+        final imageService = ImageService();
+        final processedImage = await imageService.processPickedImage(pickedFile);
+
         setState(() {
-          _imagePath = pickedFile.path;
+          _imagePath = processedImage;
         });
       }
     } catch (e) {
@@ -482,12 +488,12 @@ class _EditRecipeViewState extends State<EditRecipeView> {
                       child: _imagePath != null
                           ? ClipRRect(
                               borderRadius: BorderRadius.circular(8),
-                              child: Image.file(
-                                File(_imagePath!),
-                                height: 200,
+                              child: ImageService().displayImage(
+                                _imagePath,
                                 width: 200,
+                                height: 200,
                                 fit: BoxFit.cover,
-                              ),
+                                ),
                             )
                           : Container(
                               height: 200,

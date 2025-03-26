@@ -1,3 +1,5 @@
+// Modify lib/main.dart to include web-specific Firebase initialization
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:hive_flutter/hive_flutter.dart';
@@ -20,6 +22,23 @@ void main() async {
   if (kIsWeb) {
     // Inicialización para web
     await Hive.initFlutter();
+    
+    // Note: You should also initialize Firebase for web here
+    // If you want to add Firebase Storage for more robust image handling
+    // This would require adding firebase packages to your pubspec.yaml
+    /*
+    await Firebase.initializeApp(
+      options: FirebaseOptions(
+        apiKey: "YOUR_API_KEY",
+        authDomain: "gasterpro.firebaseapp.com",
+        projectId: "gasterpro",
+        storageBucket: "gasterpro.appspot.com",
+        messagingSenderId: "YOUR_SENDER_ID",
+        appId: "YOUR_APP_ID"
+      ),
+    );
+    */
+    
   } else {
     // Inicialización para móviles/desktop
     final appDocumentDirectory = await path_provider.getApplicationDocumentsDirectory();

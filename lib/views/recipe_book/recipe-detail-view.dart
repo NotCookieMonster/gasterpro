@@ -5,6 +5,7 @@ import '../../models/ingredient.dart';
 import '../../services/hive-service.dart';
 import 'edit-recipe-view.dart';
 import '../../models/settings.dart';
+import '../../services/image-service.dart';
 
 class ConversionResult {
   final double quantity;
@@ -176,10 +177,10 @@ ConversionResult _convertToMetric(double quantity, String unit) {
               SizedBox(
                 width: double.infinity,
                 height: 250,
-                child: Image.file(
-                  File(_recipe!.imagePath!),
+                child: ImageService().displayImage(
+                  _recipe!.imagePath,
                   fit: BoxFit.cover,
-                ),
+                  ),
               )
             else
               Container(

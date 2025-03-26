@@ -5,6 +5,7 @@ import '../../models/recipe.dart';
 import '../../services/hive-service.dart';
 import 'recipe-detail-view.dart';
 import 'new-recipe-view.dart';
+import '../../services/image-service.dart';
 
 class RecipeListView extends StatefulWidget {
   const RecipeListView({Key? key}) : super(key: key);
@@ -226,13 +227,13 @@ class RecipeCard extends StatelessWidget {
               // Recipe image
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: recipe.imagePath != null && File(recipe.imagePath!).existsSync()
-                    ? Image.file(
-                        File(recipe.imagePath!),
-                        width: 80,
-                        height: 80,
-                        fit: BoxFit.cover,
-                      )
+                child: recipe.imagePath != null 
+                ? ImageService().displayImage(
+                  recipe.imagePath, 
+                  width: 80, 
+                  height: 80,
+                  fit: BoxFit.cover,
+                  )
                     : Container(
                         width: 80,
                         height: 80,

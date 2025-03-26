@@ -6,6 +6,7 @@ import '../../models/recipe.dart';
 import '../../models/ingredient.dart';
 import '../../models/settings.dart';
 import '../../services/hive-service.dart';
+import '../../services/image-service.dart';
 
 class NewRecipeView extends StatelessWidget {
   const NewRecipeView({Key? key}) : super(key: key);
@@ -72,8 +73,11 @@ class _NewRecipeFormState extends State<NewRecipeForm> {
       );
       
       if (pickedFile != null) {
+
+        final imageService = ImageService();
+        final processedImage = await imageService.processPickedImage(pickedFile);
         setState(() {
-          _imagePath = pickedFile.path;
+          _imagePath = processedImage;
         });
       }
     } catch (e) {
@@ -379,12 +383,12 @@ class _NewRecipeFormState extends State<NewRecipeForm> {
                     child: _imagePath != null
                         ? ClipRRect(
                             borderRadius: BorderRadius.circular(8),
-                            child: Image.file(
-                              File(_imagePath!),
+                            child: ImageService().displayImage(
+                              _imagePath, 
+                              width: 200, 
                               height: 200,
-                              width: 200,
-                              fit: BoxFit.cover,
-                            ),
+                              fit: BoxFit.cover
+                              ),
                           )
                         : Container(
                             height: 200,
