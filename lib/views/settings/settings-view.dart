@@ -114,7 +114,7 @@ class _SettingsViewState extends State<SettingsView> {
                       const SizedBox(height: 8),
                       const ListTile(
                         title: Text('Versión'),
-                        trailing: Text('1.0.0'),
+                        trailing: Text('7.0 Alpha'),
                       ),
                       ListTile(
                         title: const Text('Desarrollado por'),
