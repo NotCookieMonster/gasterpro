@@ -21,8 +21,7 @@ class IngredientAdapter extends TypeAdapter<Ingredient> {
       name: fields[1] as String,
       quantity: fields[2] as double,
       unit: fields[3] as String,
-      price: fields[4] as double?,
-      recipeId: fields[5] as String,
+      recipeId: fields[4] as String,
     );
   }
 
@@ -39,8 +38,6 @@ class IngredientAdapter extends TypeAdapter<Ingredient> {
       ..writeByte(3)
       ..write(obj.unit)
       ..writeByte(4)
-      ..write(obj.price)
-      ..writeByte(5)
       ..write(obj.recipeId);
   }
 

@@ -26,6 +26,8 @@ class _EditRecipeViewState extends State<EditRecipeView> {
   final _descriptionController = TextEditingController();
   final _portionsController = TextEditingController();
   final _procedureController = TextEditingController();
+
+  List<Ingredient> _currentIngredients = [];
   
   Recipe? _recipe;
   List<Ingredient> _ingredients = [];
@@ -239,6 +241,18 @@ class _EditRecipeViewState extends State<EditRecipeView> {
                         'quantity': double.tryParse(_quantityController.text) ?? 0,
                         'unit': _selectedUnit,
                       });
+
+                      final newIngredient = Ingredient(
+                        id: '', // Se asignará en el servicio
+                        name: _ingredientNameController.text,
+                        quantity: double.tryParse(_quantityController.text) ?? 0,
+                        unit: _selectedUnit,
+                        recipeId: _recipe!.id,
+                      );
+
+                      this.setState(() {
+                        _currentIngredients.add(newIngredient);
+                      });
                     } else {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -289,7 +303,6 @@ class _EditRecipeViewState extends State<EditRecipeView> {
           quantity: result['quantity'],
           unit: result['unit'],
           recipeId: _recipe!.id,
-          price: ingredient.price,
         );
         
         await _hiveService.updateIngredient(updatedIngredient);
@@ -570,16 +583,25 @@ class _EditRecipeViewState extends State<EditRecipeView> {
                       ListView.builder(
                         shrinkWrap: true,
                         physics: const NeverScrollableScrollPhysics(),
-                        itemCount: _ingredients.length,
+                        itemCount: _currentIngredients.length,
                         itemBuilder: (context, index) {
-                          final ingredient = _ingredients[index];
-                          return ListTile(
-                            contentPadding: EdgeInsets.zero,
-                            leading: const Text('•'),
-                            title: Text('${ingredient.quantity} ${ingredient.unit} de ${ingredient.name}'),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () => _deleteIngredient(ingredient),
+                          final ingredient = _currentIngredients[index];
+                          return Padding(
+                            padding: const EdgeInsets.all(8.0),
+                            child: Row(
+                              children: [
+                                const Text('• '),
+                                Expanded(
+                                  child: Text(
+                                    '${ingredient.quantity} ${ingredient.unit} de ${ingredient.name}'
+                                    ),
+                                  ),
+                                IconButton(
+                                  icon : const Icon(Icons.delete),
+                                  onPressed: () {
+                                    _currentIngredients.remove(ingredient);
+                                  })
+                              ],
                             ),
                           );
                         },

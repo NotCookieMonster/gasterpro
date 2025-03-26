@@ -94,7 +94,7 @@ class _NewRecipeFormState extends State<NewRecipeForm> {
     
     // Get available units from settings
     _hiveService.getSettings().then((settings) {
-      _selectedUnit = settings.measurementSystem == 'metric' ? 'g' : 'oz';
+    _selectedUnit = settings.measurementSystem == 'metric' ? 'g' : 'oz';
     });
     
     showDialog(
@@ -232,16 +232,15 @@ class _NewRecipeFormState extends State<NewRecipeForm> {
         List<String> ingredientIds = [];
         for (var ingredient in _currentIngredients) {
           // Update the recipe ID reference
-          final updatedIngredient = Ingredient(
+          final newIngredient = Ingredient(
             id: ingredient.id,
             name: ingredient.name,
             quantity: ingredient.quantity,
             unit: ingredient.unit,
-            price: ingredient.price,
             recipeId: recipeId,
           );
           
-          final ingredientID = await _hiveService.addIngredient(updatedIngredient);
+          final ingredientID = await _hiveService.addIngredient(newIngredient);
           ingredientIds.add(ingredientID);
         }
         

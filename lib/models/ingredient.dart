@@ -16,9 +16,6 @@ class Ingredient extends HiveObject {
   @HiveField(3)
   String unit;
 
-  @HiveField(4)
-  double? price;
-
   @HiveField(5)
   String recipeId;
 
@@ -27,7 +24,6 @@ class Ingredient extends HiveObject {
     required this.name,
     required this.quantity,
     required this.unit,
-    this.price,
     required this.recipeId,
   });
 
@@ -44,7 +40,6 @@ class Ingredient extends HiveObject {
       name: name,
       quantity: calculateAdjustedQuantity(originalPortions, newPortions),
       unit: unit,
-      price: price,
       recipeId: recipeId,
     );
   }
